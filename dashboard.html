@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard</title>
+
+  <script>
+  if (!localStorage.getItem("loggedIn")) {
+    window.location.href = "login.html";
+  }
+</script>
+
+  <link rel="stylesheet" href="css/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>FinApp</h2>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="transactions.html">Transactions</a>
+    <a href="portfolio.html">Portfolio</a>
+    <a href="notifications.html">Notifications</a>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <h1>Dashboard</h1>
+    </div>
+    <div class="balance-box">
+      <h2>Balance: $<span id="balance">0</span></h2>
+      <input type="number" id="amount" placeholder="Amount" />
+      <input type="text" id="note" placeholder="Note (optional)" />
+      <button onclick="addTransaction('deposit')">Deposit</button>
+      <button onclick="addTransaction('withdrawal')">Withdraw</button>
+    </div>
+    <div class="transactions-box">
+      <h3>Transactions</h3>
+      <ul id="history"></ul>
+    </div>
+    <div class="chart-box">
+      <h3>Transaction Chart</h3>
+      <canvas id="transactionChart"></canvas>
+    </div>
+  </div>
+  <script>
+    let balance = 0;
+    let transactions = [];
+    let chart;
+
+    function addTransaction(type) {
+      const amount = parseFloat(document.getElementById('amount').value);
+      const note = document.getElementById('note').value || '-';
+      if (isNaN(amount) || amount <= 0) return alert("Enter a valid amount");
+
+      const transaction = {
+        type,
+        amount,
+        note,
+        date: new Date().toLocaleString()
+      };
+
+      transactions.push(transaction);
+      balance += (type === 'deposit') ? amount : -amount;
+      updateUI();
+      saveToStorage();
+    }
+
+    function updateUI() {
+      document.getElementById('balance').textContent = balance.toFixed(2);
+      const history = document.getElementById('history');
+      history.innerHTML = '';
+      transactions.slice().reverse().forEach(t => {
+        const li = document.createElement('li');
+        li.className = `transaction-${t.type}`;
+        li.textContent = `[${t.date}] ${t.type.toUpperCase()} $${t.amount} - ${t.note}`;
+        history.appendChild(li);
+      });
+      updateChart();
+    }
+
+    function saveToStorage() {
+      localStorage.setItem('transactions', JSON.stringify(transactions));
+      localStorage.setItem('balance', balance);
+    }
+
+    function loadFromStorage() {
+      const saved = localStorage.getItem('transactions');
+      const savedBalance = localStorage.getItem('balance');
+      if (saved) transactions = JSON.parse(saved);
+      if (savedBalance) balance = parseFloat(savedBalance);
+      updateUI();
+    }
+
+    function updateChart() {
+      const labels = transactions.map(t => t.date);
+      const data = transactions.map(t => t.type === 'deposit' ? t.amount : -t.amount);
+      const chartData = {
+        labels,
+        datasets: [{
+          label: 'Transaction Amounts',
+          data,
+          fill: false,
+          borderColor: 'rgba(75, 192, 192, 1)',
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          tension: 0.1
+        }]
+      };
+
+      if (chart) chart.destroy();
+      const ctx = document.getElementById('transactionChart').getContext('2d');
+      chart = new Chart(ctx, {
+        type: 'line',
+        data: chartData,
+        options: {
+          scales: {
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    }
+
+    loadFromStorage();
+  </script>
+</body>
+</html>

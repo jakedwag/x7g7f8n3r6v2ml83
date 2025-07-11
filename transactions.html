@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transactions</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="sidebar">
+    <h2>FinApp</h2>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="transactions.html">Transactions</a>
+    <a href="portfolio.html">Portfolio</a>
+    <a href="notifications.html">Notifications</a>
+  </div>
+  <div class="main">
+    <div class="topbar">
+      <h1>Transactions</h1>
+    </div>
+    <div class="transactions-list">
+      <ul id="transactionList"></ul>
+    </div>
+  </div>
+  <script>
+    function loadTransactions() {
+      const saved = localStorage.getItem('transactions');
+      const transactions = saved ? JSON.parse(saved) : [];
+      const list = document.getElementById('transactionList');
+      list.innerHTML = '';
+      transactions.slice().reverse().forEach(t => {
+        const li = document.createElement('li');
+        li.className = `transaction-${t.type}`;
+        li.textContent = `[${t.date}] ${t.type.toUpperCase()} $${t.amount} - ${t.note}`;
+        list.appendChild(li);
+      });
+    }
+    loadTransactions();
+  </script>
+</body>
+</html>

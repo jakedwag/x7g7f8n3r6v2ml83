@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en" >
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Portfolio with Ticker Autocomplete</title>
+  <style>
+    body, html {
+      margin: 0; padding: 0; height: 100%;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f6fc;
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 220px;
+      background-color: #1b2a4e;
+      color: #fff;
+      padding: 20px;
+      height: 100vh;
+      box-sizing: border-box;
+    }
+    .sidebar h2 {
+      margin-bottom: 30px;
+    }
+    .sidebar a {
+      display: block;
+      color: #cbd2e0;
+      text-decoration: none;
+      margin: 15px 0;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .sidebar a:hover {
+      color: #fff;
+    }
+    .main {
+      flex: 1;
+      padding: 40px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      background: #fff;
+      border-radius: 16px;
+      margin: 24px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      min-width: 320px;
+      max-width: 900px;
+    }
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .topbar h1 {
+      margin: 0;
+      font-weight: 700;
+      font-size: 1.6rem;
+      color: #1b2a4e;
+    }
+    .edit-btn {
+      cursor: pointer;
+      background: none;
+      border: none;
+      color: #2a74f4;
+      font-weight: 600;
+      font-size: 1rem;
+      padding: 6px 12px;
+      border-radius: 6px;
+      transition: background-color 0.3s ease;
+    }
+    .edit-btn:hover {
+      background-color: #e0e7ff;
+    }
+    .add-ticker-btn {
+      margin: 40px auto;
+      background-color: #2a74f4;
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(42,116,244,0.4);
+      transition: background-color 0.3s ease;
+      display: block;
+      width: 180px;
+      text-align: center;
+    }
+    .add-ticker-btn:hover {
+      background-color: #1f52c6;
+      box-shadow: 0 6px 14px rgba(31,82,198,0.6);
+    }
+    form {
+      margin: 20px 0 40px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      background: #f9fbff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(42,116,244,0.15);
+      position: relative;
+    }
+    /* Autocomplete container */
+    #autocomplete-container {
+      position: relative;
+      flex: 1 1 180px;
+      min-width: 180px;
+    }
+    input[type=text],
+    input[type=number],
+    input[type=date] {
+      width: 100%;
+      padding: 10px 14px;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: 1.5px solid #ccc;
+      transition: border-color 0.3s;
+    }
+    input[type=text]:focus,
+    input[type=number]:focus,
+    input[type=date]:focus {
+      outline: none;
+      border-color: #2a74f4;
+      box-shadow: 0 0 6px rgba(42,116,244,0.5);
+    }
+    form button {
+      flex: 1 1 100px;
+      background-color: #2a74f4;
+      border: none;
+      color: white;
+      font-weight: 600;
+      font-size: 1rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      min-width: 100px;
+      align-self: center;
+    }
+    form button:hover {
+      background-color: #1f52c6;
+    }
+    /* Suggestions list */
+    #suggestionsList {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      max-height: 180px;
+      overflow-y: auto;
+      background: white;
+      border: 1px solid #ccc;
+      border-top: none;
+      z-index: 20;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      border-radius: 0 0 8px 8px;
+      display: none;
+    }
+    #suggestionsList li {
+      padding: 8px 12px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      border-bottom: 1px solid #eee;
+    }
+    #suggestionsList li:hover {
+      background-color: #e0e7ff;
+    }
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+    thead {
+      background: #2a74f4;
+      color: white;
+      border-radius: 12px 12px 0 0;
+    }
+    th, td {
+      padding: 14px 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    tbody tr:last-child td {
+      border-bottom: none;
+    }
+    tbody tr:hover {
+      background: #f1f5ff;
+    }
+    .profit {
+      color: green;
+      font-weight: 600;
+    }
+    .loss {
+      color: #c53030;
+      font-weight: 600;
+    }
+    .total-value {
+      font-weight: 700;
+      font-size: 1.25rem;
+      margin-bottom: 12px;
+      color: #1b2a4e;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>FinApp</h2>
+    <a href="dashboard.html">Dashboard</a>
+    <a href="transactions.html">Transactions</a>
+    <a href="portfolio.html">Portfolio</a>
+    <a href="notifications.html">Notifications</a>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <h1>Investment Portfolio</h1>
+      <button class="edit-btn" onclick="toggleForm()">✏️ Edit Portfolio</button>
+    </div>
+
+    <div id="emptyState" style="flex-grow:1; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+      <p style="color:#1b2a4e; font-size:1.2rem; font-weight:600;">No tickers added yet.</p>
+      <button class="add-ticker-btn" onclick="toggleForm()">+ Add Ticker</button>
+    </div>
+
+    <form id="addTickerForm" style="display:none;" autocomplete="off">
+      <div id="autocomplete-container">
+        <input type="text" id="ticker" placeholder="Ticker or Company Name" required />
+        <ul id="suggestionsList"></ul>
+      </div>
+      <input type="number" id="quantity" placeholder="Quantity" min="0" step="any" required />
+      <input type="number" id="cost" placeholder="Cost per Unit ($)" min="0" step="any" required />
+      <input type="date" id="purchaseDate" required />
+      <button type="submit">Add</button>
+    </form>
+
+    <div id="portfolioContent" style="display:none; flex-direction: column;">
+      <div class="total-value">
+        Total Portfolio Value: $<span id="portfolioTotal">0.00</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Ticker</th>
+            <th>Type</th>
+            <th>Quantity</th>
+            <th>Cost/Unit ($)</th>
+            <th>Live Price ($)</th>
+            <th>Market Value ($)</th>
+            <th>Profit/Loss ($)</th>
+            <th>Purchase Date</th>
+          </tr>
+        </thead>
+        <tbody id="portfolioTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const ALPHA_VANTAGE_KEY = "4N7APYFVY17IYBSM";
+    let assets = [];
+
+    const emptyStateEl = document.getElementById('emptyState');
+    const addForm = document.getElementById('addTickerForm');
+    const portfolioContent = document.getElementById('portfolioContent');
+
+    const tickerInput = document.getElementById('ticker');
+    const suggestionsList = document.getElementById('suggestionsList');
+
+    let debounceTimeout;
+
+    function toggleForm() {
+      if (addForm.style.display === 'none') {
+        addForm.style.display = 'flex';
+        emptyStateEl.style.display = 'none';
+        portfolioContent.style.display = assets.length > 0 ? 'flex' : 'none';
+        tickerInput.focus();
+      } else {
+        addForm.style.display = 'none';
+        if (assets.length === 0) {
+          emptyStateEl.style.display = 'flex';
+          portfolioContent.style.display = 'none';
+        } else {
+          portfolioContent.style.display = 'flex';
+          emptyStateEl.style.display = 'none';
+        }
+        clearSuggestions();
+      }
+    }
+
+    function saveAssets() {
+      localStorage.setItem('portfolio_assets', JSON.stringify(assets));
+    }
+
+    function loadAssets() {
+      const saved = localStorage.getItem('portfolio_assets');
+      if (saved) {
+        assets = JSON.parse(saved);
+      }
+      renderAssets();
+    }
+
+    function clearSuggestions() {
+      suggestionsList.innerHTML = '';
+      suggestionsList.style.display = 'none';
+    }
+
+    // Debounced ticker search
+    tickerInput.addEventListener('input', () => {
+      const query = tickerInput.value.trim();
+
+      if (query.length < 2) {
+        clearSuggestions();
+        return;
+      }
+
+      clearTimeout(debounceTimeout);
+      debounceTimeout = setTimeout(() => {
+        fetchSuggestions(query);
+      }, 400);
+    });
+
+    async function fetchSuggestions(query) {
+      try {
+        const url = `https://www.alphavantage.co/query?function=SYMBOL_SEARCH&keywords=${encodeURIComponent(query)}&apikey=${ALPHA_VANTAGE_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (!data.bestMatches || data.bestMatches.length === 0) {
+          clearSuggestions();
+          return;
+        }
+
+        suggestionsList.innerHTML = data.bestMatches.map(match => {
+          const symbol = match['1. symbol'];
+          const name = match['2. name'];
+          return `<li tabindex="0" data-symbol="${symbol}" title="${name}">${symbol} - ${name}</li>`;
+        }).join('');
+        suggestionsList.style.display = 'block';
+      } catch (err) {
+        clearSuggestions();
+        console.error('Error fetching suggestions:', err);
+      }
+    }
+
+    // Click or keyboard select on suggestion
+    suggestionsList.addEventListener('click', e => {
+      if (e.target.tagName === 'LI') {
+        selectSuggestion(e.target);
+      }
+    });
+    suggestionsList.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && e.target.tagName === 'LI') {
+        e.preventDefault();
+        selectSuggestion(e.target);
+      }
+    });
+
+    function selectSuggestion(item) {
+      const symbol = item.getAttribute('data-symbol');
+      tickerInput.value = symbol;
+      clearSuggestions();
+      quantityInput.focus();
+    }
+
+    // Hide suggestions if click outside
+    document.addEventListener('click', e => {
+      if (!tickerInput.contains(e.target) && !suggestionsList.contains(e.target)) {
+        clearSuggestions();
+      }
+    });
+
+    const quantityInput = document.getElementById('quantity');
+
+    async function detectAssetTypes() {
+      for (let asset of assets) {
+        if (asset.type) continue;
+        try {
+          // Try CoinGecko API for crypto
+          const cgRes = await fetch(`https://api.coingecko.com/api/v3/coins/${asset.ticker.toLowerCase()}`);
+          if (cgRes.ok) {
+            asset.type = "crypto";
+            continue;
+          }
+        } catch {}
+        asset.type = "stock";
+      }
+      saveAssets();
+    }
+
+    async function fetchPrices() {
+      const prices = {};
+
+      const cryptoIds = assets
+        .filter(a => a.type === 'crypto')
+        .map(a => a.ticker.toLowerCase());
+
+      if (cryptoIds.length) {
+        const cgUrl = `https://api.coingecko.com/api/v3/simple/price?ids=${cryptoIds.join(',')}&vs_currencies=usd`;
+        try {
+          const cgRes = await fetch(cgUrl);
+          const cgData = await cgRes.json();
+          cryptoIds.forEach(id => {
+            if (cgData[id]) {
+              prices[id.toUpperCase()] = cgData[id].usd;
+            }
+          });
+        } catch(e) {
+          console.warn("CoinGecko fetch failed:", e);
+        }
+      }
+
+      const stockTickers = assets
+        .filter(a => a.type === 'stock')
+        .map(a => a.ticker);
+
+      for (const ticker of stockTickers) {
+        const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${ticker}&apikey=${ALPHA_VANTAGE_KEY}`;
+        try {
+          const res = await fetch(url);
+          const data = await res.json();
+          if (data["Global Quote"] && data["Global Quote"]["05. price"]) {
+            prices[ticker] = parseFloat(data["Global Quote"]["05. price"]);
+          }
+        } catch (e) {
+          console.warn("Alpha Vantage fetch failed:", e);
+        }
+      }
+
+      return prices;
+    }
+
+    async function renderAssets() {
+      await detectAssetTypes();
+
+      if (assets.length === 0) {
+        emptyStateEl.style.display = 'flex';
+        addForm.style.display = 'none';
+        portfolioContent.style.display = 'none';
+        return;
+      }
+
+      emptyStateEl.style.display = 'none';
+      portfolioContent.style.display = 'flex';
+      addForm.style.display = 'none';
+
+      const tbody = document.getElementById('portfolioTableBody');
+      tbody.innerHTML = '';
+      let totalValue = 0;
+      const prices = await fetchPrices();
+
+      for (const asset of assets) {
+        const ticker = asset.ticker;
+        const livePrice = prices[ticker] || 0;
+        const marketValue = livePrice * asset.quantity;
+        const profit = (livePrice - asset.cost) * asset.quantity;
+        totalValue += marketValue;
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${ticker}</td>
+          <td>${asset.type}</td>
+          <td>${asset.quantity}</td>
+          <td>$${asset.cost.toFixed(2)}</td>
+          <td>$${livePrice.toFixed(2)}</td>
+          <td>$${marketValue.toFixed(2)}</td>
+          <td class="${profit >= 0 ? 'profit' : 'loss'}">$${profit.toFixed(2)}</td>
+          <td>${asset.purchaseDate}</td>
+        `;
+        tbody.appendChild(row);
+      }
+
+      document.getElementById('portfolioTotal').textContent = totalValue.toFixed(2);
+    }
+
+    addForm.addEventListener('submit', e => {
+      e.preventDefault();
+      const ticker = tickerInput.value.trim().toUpperCase();
+      const quantity = parseFloat(document.getElementById('quantity').value);
+      const cost = parseFloat(document.getElementById('cost').value);
+      const purchaseDate = document.getElementById('purchaseDate').value;
+
+      if (!ticker || isNaN(quantity) || isNaN(cost) || !purchaseDate) {
+        alert("Please fill all fields correctly.");
+        return;
+      }
+
+      // Prevent duplicate ticker entries (optional)
+      if (assets.find(a => a.ticker === ticker)) {
+        alert("Ticker already in portfolio. You can edit this later.");
+        return;
+      }
+
+      assets.push({ ticker, quantity, cost, purchaseDate, type: null });
+      saveAssets();
+      renderAssets();
+
+      addForm.reset();
+      addForm.style.display = 'none';
+    });
+
+    // Auto-refresh prices every 60 seconds
+    setInterval(renderAssets, 60000);
+
+    loadAssets();
+  </script>
+</body>
+</html>
